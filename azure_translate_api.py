@@ -13,13 +13,13 @@
  */
 """
 
+import datetime
+import math
 import json
+import retry
+import time
 import urllib
 import urllib2
-import datetime
-import time
-import math
-import retry
 
 
 SCOPE_URL='http://api.microsofttranslator.com'
@@ -28,7 +28,13 @@ AZURE_TRANSLATE_API_URL='http://api.microsofttranslator.com/V2/Ajax.svc/Translat
 GRANT_CLIENT_CREDENTIALS_ONLY='client_credentials'
 
 
-class AzureTranslateAPI(object):
+class MicrosoftTranslatorClient(object):
+  """Handles authentication and translation for Microsoft Translator API.
+  
+  Arguments:
+    client_id: The client_id for your azure application (as a string)
+    client_secret: The client secret for your azure application (as a string)
+  """
   
   def __init__(self, client_id, client_secret):
     self.client_id = client_id
@@ -38,6 +44,7 @@ class AzureTranslateAPI(object):
 
   @retry.retry(Exception, tries=3, delay=5, backoff=2)
   def __GetAuthenticationToken(self):
+    """Gets the authentication token for your app from azure marketplace."""
     auth_args = {
       'client_id': self.client_id,
       'client_secret': self.client_secret,
@@ -53,6 +60,20 @@ class AzureTranslateAPI(object):
 
   @retry.retry(Exception, tries=3, delay=5, backoff=2)
   def TranslateText(self, unicode_string, from_lang_code, to_lang_code):
+    """Translates a given text from given language to target language.
+    
+    This function tries to translate the text thrice, and if no translations could be done
+    returns an empty string.
+    
+    Arguments:
+      unicode_string: The string to transalte in unicode format.
+      from_lang_code: The source language code.
+      to_lang_code: The destination language code.
+    
+    Returns:
+      Translated string if succesful, ""(empty string) otherwise.
+    """
+    
     self.translated_text = ""
     # Whenever there is a translate request, check if our token in still valid.
     # if valid, then its all good, continue to next step
